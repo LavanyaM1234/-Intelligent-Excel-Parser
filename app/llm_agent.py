@@ -6,13 +6,11 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-# Load environment variables from .env file
+
 from dotenv import load_dotenv
 load_dotenv()
 
-# For actual LLM integration, uncomment and use:
-# from langchain.llms import OpenAI
-# from langchain.prompts import PromptTemplate
+
 
 from app.models import MappingResult
 from app.registries import get_parameter_context, get_asset_context, PARAMETER_REGISTRY, ASSET_REGISTRY
@@ -150,54 +148,37 @@ Return your response as JSON with this exact structure:
     
     def _map_header_with_llm(self, header: str) -> MappingResult:
         """
-        Use Google Gemini (Generative API) to map header intelligently.
+        Use Google Gemini (new SDK) to map header intelligently.
         Falls back to fuzzy matching if API call fails.
-        Attempts to use the `google.generativeai` client if available.
         """
         try:
-            import google.generativeai as genai
-
-            # Configure client
-            genai.configure(api_key=self.api_key)
+            from google import genai
+            # Initialize client
+            client = genai.Client(api_key=self.api_key)
 
             system_prompt = self.create_system_prompt()
 
-            # Try the common chat/completion entrypoints; be flexible about response shapes
-            try:
-                response = genai.chat.completions.create(
-                    model="gemini-pro",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": f"Map this Excel column header: '{header}'"}
-                    ],
-                    temperature=0.2,
-                    max_output_tokens=512,
-                )
-            except Exception:
-                # Fallback to alternate API name
-                response = genai.chat.create(
-                    model="gemini-pro",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": f"Map this Excel column header: '{header}'"}
-                    ],
-                    temperature=0.2,
-                    max_output_tokens=512,
-                )
+            prompt = f"""
+            {system_prompt}
 
-            # Extract text from response robustly
-            response_text = None
-            try:
-                # Common shape: response.choices[0].message.content
-                response_text = response.choices[0].message.content
-            except Exception:
-                try:
-                    # Some gens return candidates
-                    response_text = response.candidates[0].content
-                except Exception:
-                    response_text = str(response)
+            Map this Excel column header: '{header}'
 
-            # Parse JSON mapping from model output
+            Return JSON only:
+            {{
+                \"param_name\": \"...\",
+                \"asset_name\": \"...\",
+                \"confidence\": \"high/medium/low\",
+                \"reason\": \"...\"
+            }}
+            """
+
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            )
+
+            response_text = response.text.strip()
+
             mapping_json = json.loads(response_text)
 
             return MappingResult(
@@ -209,11 +190,11 @@ Return your response as JSON with this exact structure:
             )
 
         except json.JSONDecodeError as e:
-            print(f"⚠️  Failed to parse LLM response as JSON: {e}")
+            print(f"⚠️ Failed to parse LLM response as JSON: {e}")
             return self._fuzzy_match_header(header)
 
         except Exception as e:
-            print(f"⚠️  LLM API error: {e}. Falling back to fuzzy matching.")
+            print(f"⚠️ LLM API error: {e}. Falling back to fuzzy matching.")
             return self._fuzzy_match_header(header)
 
     def _is_non_parameter(self, header: str) -> (bool, Optional[str]):
