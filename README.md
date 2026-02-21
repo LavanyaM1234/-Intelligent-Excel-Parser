@@ -1,6 +1,6 @@
 # Intelligent Excel Parser 📊
 
-Transform messy factory Excel spreadsheets into clean, structured JSON data with AI-powered parsing and intelligent header mapping.
+
 
 ## The Problem
 
@@ -13,6 +13,8 @@ Factories upload operational data as Excel files, but they're **never consistent
 
 This service **automatically parses, maps, and validates** that messy data into reliable JSON.
 
+This project uses Google's Gemini LLM (via Gemini API) for intelligent header understanding and semantic mapping.
+
 ---
 
 ## Features ✨
@@ -24,13 +26,7 @@ This service **automatically parses, maps, and validates** that messy data into 
 - ✅ **Smart Value Parsing** - Converts "1,234.56" → 1234.56, "45%" → 0.45, "YES" → 1.0, "N/A" → null
 - ✅ **Confidence Scoring** - Each parsed cell gets high/medium/low confidence based on match quality
 - ✅ **Unmapped Columns** - Flags columns that don't match any known parameter
-- ✅ **Multi-sheet Support** - Handle workbooks with data across multiple sheets
-
-### Nice to Have
-- 📋 Validation rules (flag negative coal consumption, efficiency > 100%)
-- 🔍 Duplicate detection (same parameter+asset in multiple columns)
-- 📊 Chunked processing (for files > 5MB)
-- 👤 Human review mode (low-confidence mappings for approval)
+  
 
 ---
 
@@ -41,7 +37,7 @@ latspace/
 ├── app/
 │   ├── main.py              # FastAPI app & endpoints
 │   ├── parser.py            # Core Excel parsing logic
-│   ├── llm_agent.py         # Header mapping (fuzzy logic)
+│   ├── llm_agent.py         # Header mapping 
 │   ├── models.py            # Pydantic response models
 │   ├── registries.py        # Parameter & asset definitions
 │   ├── value_parser.py      # Value conversion & validation
@@ -62,13 +58,15 @@ latspace/
 
 ---
 
+
 ## Quick Start 🚀
 
 ### Option 1: Docker (Recommended)
 ```bash
 # Start the service
 docker-compose up --build
-
+create .env file
+GOOGLE_API_KEY=your_google_api_key_here
 # Access API docs
 open http://localhost:8000/docs
 ```
@@ -157,7 +155,6 @@ Creates 10 test files covering edge cases:
 - Clean headers, messy headers, mixed formats
 - Multiple assets per parameter
 - Special characters, validation errors
-- Large file (5MB) for stress testing
 
 ### Test the API
 ```bash
@@ -167,6 +164,7 @@ python scripts/post_test_parse.py
 ---
 
 ## How It Works 🔧
+<img width="673" height="674" alt="Screenshot 2026-02-21 124422" src="https://github.com/user-attachments/assets/94aa8670-5571-4db9-b2ab-d2454bee23e1" />
 
 ### Parsing Flow
 1. **Load Excel** → Extract sheets, detect header row
@@ -184,187 +182,5 @@ python scripts/post_test_parse.py
 
 ---
 
-## Environment Setup 🔐
-
-Create `.env` file:
-```env
-GOOGLE_API_KEY=your_google_generativeai_key_here
-```
-
-**Why?** Optional LLM integration for advanced header mapping. Works without it using fuzzy matching.
-
 ---
 
-## Development 💻
-
-### Install Dev Dependencies
-```bash
-pip install -r requirements.txt pytest pytest-asyncio black flake8
-```
-
-### Run Tests
-```bash
-pytest
-```
-
-### Format Code
-```bash
-black app/
-```
-
-### Lint
-```bash
-flake8 app/
-```
-
----
-
-## Deployment 🚢
-
-### Docker (Simple)
-```bash
-docker build -t excel-parser .
-docker run -p 8000:8000 --env-file .env excel-parser
-```
-
-### Docker Compose
-```bash
-docker-compose up -d
-docker-compose logs -f
-```
-
----
-
-## Example Workflows 📝
-
-### Workflow 1: Parse Clean Data
-```
-Upload: clean_data.xlsx
-↓
-Headers automatically detected
-↓
-All columns mapped to parameters
-↓
-All values parsed successfully
-↓
-Response: 100% high confidence
-```
-
-### Workflow 2: Parse Messy Data
-```
-Upload: messy_data.xlsx (title rows, bad headers, mixed formats)
-↓
-Header row detected automatically (skips title row)
-↓
-Headers fuzzy-matched to parameters
-↓
-"Coal Consumption AFBC-1" → param: coal_consumption, asset: AFBC-1
-↓
-"1,234.56" converted to 1234.56
-↓
-Response: Mix of high/medium confidence + warnings
-```
-
-### Workflow 3: Handle Unmapped Columns
-```
-Upload: unknown_data.xlsx
-↓
-Some columns "Comments", "Notes" don't match any parameter
-↓
-Flagged in unmapped_columns
-↓
-Response includes reason: "Non-parameter column detected: 'notes'"
-```
-
----
-
-## Architecture 🏗️
-
-```
-FastAPI (app/main.py)
-    ↓
-ExcelParser (app/parser.py)
-    ├─→ Header Detection
-    ├─→ ExcelParsingAgent (app/llm_agent.py)
-    │   └─→ Fuzzy matching + asset inference
-    ├─→ Value Parsing (app/value_parser.py)
-    │   └─→ Convert formats & validate
-    └─→ Pydantic Models (app/models.py)
-        └─→ Structured JSON response
-
-Registries (app/registries.py)
-    ├─→ PARAMETER_REGISTRY (20+ parameters)
-    └─→ ASSET_REGISTRY (6 assets)
-```
-
----
-
-## Troubleshooting 🐛
-
-### Docker won't start
-```bash
-# Check logs
-docker-compose logs
-
-# Rebuild
-docker-compose down && docker-compose up --build
-```
-
-### File upload fails
-- Ensure `.xlsx` format (not `.xls` or `.csv`)
-- File size < 50MB (recommended)
-- Check `/health` endpoint first
-
-### Headers not mapping correctly
-- Check parameter registry: `GET /registries`
-- Add aliases to parameter definition in `app/registries.py`
-- Enable LLM with `GOOGLE_API_KEY` for advanced matching
-
----
-
-## Performance ⚡
-
-- **Avg Response Time**: 100-500ms for typical files
-- **File Size Support**: Up to 50MB (tested with 5MB)
-- **Headers Tested**: 100+ variations
-- **Test Coverage**: 10+ edge case files
-
----
-
-## Requirements 📦
-
-- Python 3.11+
-- FastAPI 0.104+
-- openpyxl (Excel parsing)
-- Pydantic (Data validation)
-- Optional: google-generativeai (Advanced mapping)
-
----
-
-## License 📄
-
-Built as part of LatSpace Technical Challenge - Track A
-
----
-
-## Contributing 🤝
-
-1. Fork the repo
-2. Create feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -am 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing`)
-5. Open Pull Request
-
----
-
-## Questions? 💬
-
-Check these resources:
-- API Docs: `http://localhost:8000/docs` (Swagger UI)
-- Test files: `data/` folder
-- Examples: `scripts/post_test_parse.py`
-- Code: Well-commented Python files in `app/`
-
----
-
-**Status**: ✅ Production Ready | 🚀 Actively Maintained | 📊 Tested with 10+ edge cases
