@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+*.egg
+dist
+build
+.Python
+env
+venv
+ENV
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.pytest_cache
+htmlcov
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+tests/
+test_*.py
+*_test.py
+.pytest_cache
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data and logs
+data/
+logs/
+*.log
+
+# Project specific
+*.xlsx
+*.xls
+.cache
+*.db
